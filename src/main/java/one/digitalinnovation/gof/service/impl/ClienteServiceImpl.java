@@ -1,5 +1,7 @@
 package one.digitalinnovation.gof.service.impl;
 
+import one.digitalinnovation.gof.handler.BusinessException;
+import one.digitalinnovation.gof.handler.CampoObrigatorioException;
 import one.digitalinnovation.gof.model.Cliente;
 import one.digitalinnovation.gof.model.ClienteRepository;
 import one.digitalinnovation.gof.model.Endereco;
@@ -28,26 +30,47 @@ public class ClienteServiceImpl implements ClienteService {
 
   @Override
   public Cliente buscarPorId(Long id) {
-    Optional<Cliente> cliente = clienteRepository.findById(id);
-    return cliente.get();
+    return clienteExiste(id);
   }
 
   @Override
   public void inserir(Cliente cliente) {
+    verificarCampos(cliente);
     salvarClienteComCep(cliente);
   }
 
   @Override
   public void atualizar(Long id, Cliente cliente) {
-    Optional<Cliente> clienteBd = clienteRepository.findById(id);
-    if (clienteBd.isPresent()) {
-      salvarClienteComCep(cliente);
+    if (cliente.getId() == null) {
+      throw new CampoObrigatorioException("id");
     }
+    verificarCampos(cliente);
+
+    clienteExiste(id);
+    salvarClienteComCep(cliente);
   }
 
   @Override
   public void deletar(Long id) {
+    clienteExiste(id);
     clienteRepository.deleteById(id);
+  }
+
+  private void verificarCampos(Cliente cliente) {
+    if (cliente.getNome() == null) {
+      throw new CampoObrigatorioException("nome");
+    } else if (cliente.getEndereco().getCep() == null) {
+      throw new CampoObrigatorioException("cep");
+    }
+  }
+
+  private Cliente clienteExiste(Long id) {
+    Optional<Cliente> clienteBd = clienteRepository.findById(id);
+    if (!clienteBd.isPresent()) {
+      throw new BusinessException("Cliente não encontrado");
+    }
+
+    return clienteBd.get();
   }
 
   private void salvarClienteComCep(Cliente cliente) {
